@@ -567,27 +567,27 @@ export const EcctrlJoystick = forwardRef<HTMLDivElement, EcctrlJoystickProps>(
           </Canvas>
         </div>
 
-        {props.buttonNumber !== 0 && (
-          <div
-            id="ecctrl-button"
-            style={buttonWrapperStyle}
-            onContextMenu={(e) => e.preventDefault()}
+        {/* {props.buttonNumber !== 0 && ( */}
+        <div
+          id="ecctrl-button"
+          style={buttonWrapperStyle}
+          onContextMenu={(e) => e.preventDefault()}
+        >
+          <Canvas
+            shadows
+            orthographic
+            camera={{
+              far: 50,
+              near: 49,
+              zoom: props.buttonCamZoom || 26,
+              position: props.buttonCamPosition || [0, 0, 50],
+            }}
           >
-            <Canvas
-              shadows
-              orthographic
-              camera={{
-                far: 50,
-                near: 49,
-                zoom: props.buttonCamZoom || 26,
-                position: props.buttonCamPosition || [0, 0, 50],
-              }}
-            >
-              <ButtonComponents {...props} />
-              {props.children}
-            </Canvas>
-          </div>
-        )}
+            <ButtonComponents {...props} />
+            {props.children}
+          </Canvas>
+        </div>
+        {/* )} */}
       </div>
     );
   }

@@ -5,6 +5,7 @@ import * as THREE from "three";
 
 export const useFollowCam = function (props: UseFollowCamProps) {
   const { scene, camera, gl } = useThree();
+
   const disableFollowCam = props.disableFollowCam;
   const disableFollowCamPos = props.disableFollowCamPos;
   const disableFollowCamTarget = props.disableFollowCamTarget;
@@ -253,7 +254,7 @@ export const useFollowCam = function (props: UseFollowCamProps) {
     // Prepare for followCam and pivot point
     disableFollowCam ? followCam.remove(camera) : followCam.add(camera);
     pivot.add(followCam);
-    scene.add(pivot);
+    // scene.add(pivot); ! TO CHECK
 
     gl.domElement.addEventListener("mousedown", () => {
       isMouseDown = true;

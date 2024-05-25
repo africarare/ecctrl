@@ -7,7 +7,7 @@ import {
   useRapier,
   RapierRigidBody,
   type RigidBodyProps,
-  CylinderCollider,
+  // CylinderCollider,
 } from "@react-three/rapier";
 import {
   useEffect,
@@ -33,7 +33,7 @@ import React from "react";
 export { EcctrlAnimation } from "./EcctrlAnimation";
 export { useFollowCam } from "./hooks/useFollowCam";
 export { useGame } from "./stores/useGame";
-export { EcctrlJoystick } from "../src/EcctrlJoystick";
+export { EcctrlJoystick } from "./EcctrlJoystick";
 export { useJoystickControls } from "./stores/useJoystickControls";
 
 // Retrieve current moving direction of the character
@@ -63,7 +63,6 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
     capsuleRadius = 0.3,
     floatHeight = 0.3,
     characterInitDir = 0, // in rad
-    followLight = false,
     disableFollowCam = false,
     disableFollowCamPos = { x: 0, y: 0, z: -5 },
     disableFollowCamTarget = { x: 0, y: 0, z: 0 },
@@ -77,8 +76,6 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
     camZoomSpeed = 1,
     camCollision = true,
     camCollisionOffset = 0.7,
-    // Follow light setups
-    followLightPos = { x: 20, y: 30, z: 10 },
     // Base control setups
     maxVelLimit = 2.5,
     turnVelMultiplier = 0.2,
@@ -162,12 +159,12 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
   /**
    * Mode setup
    */
-  let isModePointToMove: boolean = false;
   const setCameraBased = useGame((state) => state.setCameraBased);
   const getCameraBased = useGame((state) => state.getCameraBased);
   if (mode) {
-    if (mode === "PointToMove") isModePointToMove = true;
     if (mode === "CameraBasedMovement") setCameraBased(true);
+  } else if (getCameraBased().isCameraBased) {
+    setCameraBased(false);
   }
 
   /**
@@ -189,10 +186,10 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
     []
   );
   const vectorY: THREE.Vector3 = useMemo(() => new THREE.Vector3(0, 1, 0), []);
-  const vectorZ: THREE.Vector3 = useMemo(() => new THREE.Vector3(0, 0, 1), []);
-  const crossVecOnX: THREE.Vector3 = useMemo(() => new THREE.Vector3(), []);
-  const crossVecOnY: THREE.Vector3 = useMemo(() => new THREE.Vector3(), []);
-  const crossVecOnZ: THREE.Vector3 = useMemo(() => new THREE.Vector3(), []);
+  // const vectorZ: THREE.Vector3 = useMemo(() => new THREE.Vector3(0, 0, 1), []);
+  // const crossVecOnX: THREE.Vector3 = useMemo(() => new THREE.Vector3(), []);
+  // const crossVecOnY: THREE.Vector3 = useMemo(() => new THREE.Vector3(), []);
+  // const crossVecOnZ: THREE.Vector3 = useMemo(() => new THREE.Vector3(), []);
   const bodyContactForce: THREE.Vector3 = useMemo(
     () => new THREE.Vector3(),
     []
@@ -629,11 +626,6 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
   const velocityDiff: THREE.Vector3 = useMemo(() => new THREE.Vector3(), []);
 
   /**
-   * Initial light setup
-   */
-  let dirLight: THREE.DirectionalLight = null;
-
-  /**
    * Follow camera initial setups from props
    */
   const cameraSetups = {
@@ -705,22 +697,6 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
   let slopeRayHit: RayColliderToi = null;
 
   /**
-   * Point to move setup
-   */
-  let isBodyHitWall = false;
-  let isPointMoving = false;
-  const crossVector: THREE.Vector3 = useMemo(() => new THREE.Vector3(), []);
-  const pointToPoint: THREE.Vector3 = useMemo(() => new THREE.Vector3(), []);
-  const getMoveToPoint = useGame((state) => state.getMoveToPoint);
-  const bodySensorRef = useRef<Collider>();
-  const handleOnIntersectionEnter = () => {
-    isBodyHitWall = true;
-  };
-  const handleOnIntersectionExit = () => {
-    isBodyHitWall = false;
-  };
-
-  /**
    * Character moving function
    */
   let characterRotated: boolean = true;
@@ -742,9 +718,8 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
       Math.abs(slopeAngle) < slopeMaxAngle
     ) {
       movingDirection.set(0, Math.sin(slopeAngle), Math.cos(slopeAngle));
-    }
-    // If on a slopeMaxAngle slope, only apply small a mount of forward direction
-    else if (actualSlopeAngle >= slopeMaxAngle) {
+      // If on a slopeMaxAngle slope, only apply small a mount of forward direction
+    } else if (actualSlopeAngle >= slopeMaxAngle) {
       movingDirection.set(
         0,
         Math.sin(slopeAngle) > 0 ? 0 : Math.sin(slopeAngle),
@@ -884,28 +859,31 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
       modelEuler.y = pivot.rotation.y;
       pivot.getWorldDirection(modelFacingVec);
       // Update slopeRayOrigin to new positon
-      slopeRayOriginUpdatePosition.set(movingDirection.x, 0, movingDirection.z);
-      camBasedMoveCrossVecOnY
-        .copy(slopeRayOriginUpdatePosition)
-        .cross(modelFacingVec);
-      slopeRayOriginRef.current.position.x =
-        slopeRayOriginOffest *
-        Math.sin(
-          slopeRayOriginUpdatePosition.angleTo(modelFacingVec) *
-            (camBasedMoveCrossVecOnY.y < 0 ? 1 : -1)
-        );
-      slopeRayOriginRef.current.position.z =
-        slopeRayOriginOffest *
-        Math.cos(
-          slopeRayOriginUpdatePosition.angleTo(modelFacingVec) *
-            (camBasedMoveCrossVecOnY.y < 0 ? 1 : -1)
-        );
+      // slopeRayOriginUpdatePosition.set(movingDirection.x, 0, movingDirection.z);
+      // camBasedMoveCrossVecOnY
+      //   .copy(slopeRayOriginUpdatePosition)
+      //   .cross(modelFacingVec);
+      // slopeRayOriginRef.current.position.x =
+      //   slopeRayOriginOffest *
+      //   Math.sin(
+      //     slopeRayOriginUpdatePosition.angleTo(modelFacingVec) *
+      //       (camBasedMoveCrossVecOnY.y < 0 ? 1 : -1)
+      //   );
+      // slopeRayOriginRef.current.position.z =
+      //   slopeRayOriginOffest *
+      //   Math.cos(
+      //     slopeRayOriginUpdatePosition.angleTo(modelFacingVec) *
+      //       (camBasedMoveCrossVecOnY.y < 0 ? 1 : -1)
+      //   );
     } else {
       characterModelIndicator.getWorldDirection(modelFacingVec);
     }
-    crossVecOnX.copy(vectorY).cross(bodyBalanceVecOnX);
-    crossVecOnY.copy(modelFacingVec).cross(bodyFacingVecOnY);
-    crossVecOnZ.copy(vectorY).cross(bodyBalanceVecOnZ);
+    const crossVecOnX = vectorY.clone().cross(bodyBalanceVecOnX);
+    const crossVecOnY = modelFacingVec.clone().cross(bodyFacingVecOnY);
+    const crossVecOnZ = vectorY.clone().cross(bodyBalanceVecOnZ);
+    // const crossVecOnX.copy(vectorY).cross(bodyBalanceVecOnX);
+    // const crossVecOnY.copy(modelFacingVec).cross(bodyFacingVecOnY);
+    // const crossVecOnZ.copy(vectorY).cross(bodyBalanceVecOnZ);
 
     dragAngForce.set(
       (crossVecOnX.x < 0 ? 1 : -1) *
@@ -940,50 +918,6 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
       }
     }
   };
-
-  /**
-   * Point-to-move function
-   */
-  const pointToMove = (
-    delta: number,
-    slopeAngle: number,
-    movingObjectVelocity: THREE.Vector3
-  ) => {
-    const moveToPoint = getMoveToPoint().moveToPoint;
-    if (moveToPoint) {
-      pointToPoint.set(
-        moveToPoint.x - currentPos.x,
-        0,
-        moveToPoint.z - currentPos.z
-      );
-      crossVector.crossVectors(pointToPoint, vectorZ);
-      // Rotate character to moving direction
-      modelEuler.y =
-        (crossVector.y > 0 ? -1 : 1) * pointToPoint.angleTo(vectorZ);
-      // Once character close to the target point (distance<0.3),
-      // Or character close to the wall (bodySensor intersects)
-      // stop moving
-      if (characterRef.current) {
-        if (pointToPoint.length() > 0.3 && !isBodyHitWall) {
-          moveCharacter(delta, false, slopeAngle, movingObjectVelocity);
-          isPointMoving = true;
-        } else {
-          isPointMoving = false;
-        }
-      }
-    }
-  };
-
-  useEffect(() => {
-    // Initialize directional light
-    if (followLight) {
-      dirLight = characterModelRef.current.parent.parent.children.find(
-        (item) => {
-          return item.name === "followLight";
-        }
-      ) as THREE.DirectionalLight;
-    }
-  });
 
   /**
    * Keyboard controls subscribe setup
@@ -1131,7 +1065,7 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
     // Character current position/velocity
     if (characterRef.current) {
       currentPos.copy(characterRef.current.translation() as THREE.Vector3);
-      currentVel.copy(characterRef.current.linvel() as THREE.Vector3);
+      // currentVel.copy(characterRef.current.linvel() as THREE.Vector3);
 
       // Assign userDate properties
       (characterRef.current.userData as userDataType).rotation =
@@ -1142,16 +1076,6 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
         characterRotated;
       (characterRef.current.userData as userDataType).isOnMovingObject =
         isOnMovingObject;
-    }
-
-    /**
-     * Apply character position to directional light
-     */
-    if (followLight && dirLight) {
-      dirLight.position.x = currentPos.x + followLightPos.x;
-      dirLight.position.y = currentPos.y + followLightPos.y;
-      dirLight.position.z = currentPos.z + followLightPos.z;
-      dirLight.target = characterModelRef.current;
     }
 
     /**
@@ -1211,6 +1135,10 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
       gamepadKeys.rightward
     )
       moveCharacter(delta, run, slopeAngle, movingObjectVelocity);
+
+    // Character current velocity
+    if (characterRef.current)
+      currentVel.copy(characterRef.current.linvel() as THREE.Vector3);
 
     // Jump impulse
     if ((jump || button1Pressed) && canJump) {
@@ -1363,7 +1291,6 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
               !rightward &&
               canJump &&
               joystickDis === 0 &&
-              !isPointMoving &&
               !gamepadKeys.forward &&
               !gamepadKeys.backward &&
               !gamepadKeys.leftward &&
@@ -1487,7 +1414,6 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
       !rightward &&
       canJump &&
       joystickDis === 0 &&
-      !isPointMoving &&
       !gamepadKeys.forward &&
       !gamepadKeys.backward &&
       !gamepadKeys.leftward &&
@@ -1555,11 +1481,6 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
     camCollision && cameraCollisionDetect(delta);
 
     /**
-     * Point to move feature
-     */
-    isModePointToMove && pointToMove(delta, slopeAngle, movingObjectVelocity);
-
-    /**
      * Apply all the animations
      */
     if (animated) {
@@ -1571,7 +1492,6 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
         !jump &&
         !button1Pressed &&
         joystickDis === 0 &&
-        !isPointMoving &&
         !gamepadKeys.forward &&
         !gamepadKeys.backward &&
         !gamepadKeys.leftward &&
@@ -1588,7 +1508,6 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
           leftward ||
           rightward ||
           joystickDis > 0 ||
-          isPointMoving ||
           gamepadKeys.forward ||
           gamepadKeys.backward ||
           gamepadKeys.leftward ||
@@ -1609,7 +1528,7 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
     <RigidBody
       colliders={false}
       ref={characterRef}
-      position={props.position || [0, 5, 0]}
+      position={props.position || [0, 0, 0]}
       friction={props.friction || -0.5}
       onContactForce={(e) =>
         bodyContactForce.set(e.totalForce.x, e.totalForce.y, e.totalForce.z)
@@ -1622,17 +1541,6 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
         name="character-capsule-collider"
         args={[capsuleHalfHeight, capsuleRadius]}
       />
-      {/* Body collide sensor (only for point to move mode) */}
-      {isModePointToMove && (
-        <CylinderCollider
-          ref={bodySensorRef}
-          sensor
-          args={[capsuleHalfHeight / 2, capsuleRadius]}
-          position={[0, 0, capsuleRadius / 2]}
-          onIntersectionEnter={handleOnIntersectionEnter}
-          onIntersectionExit={handleOnIntersectionExit}
-        />
-      )}
       <group ref={characterModelRef} userData={{ camExcludeCollision: true }}>
         {/* This mesh is used for positioning the slope ray origin */}
         <mesh
@@ -1663,7 +1571,6 @@ export interface EcctrlProps extends RigidBodyProps {
   capsuleRadius?: number;
   floatHeight?: number;
   characterInitDir?: number;
-  followLight?: boolean;
   disableFollowCam?: boolean;
   disableFollowCamPos?: { x: number; y: number; z: number };
   disableFollowCamTarget?: { x: number; y: number; z: number };
@@ -1677,8 +1584,6 @@ export interface EcctrlProps extends RigidBodyProps {
   camZoomSpeed?: number;
   camCollision?: boolean;
   camCollisionOffset?: number;
-  // Follow light setups
-  followLightPos?: { x: number; y: number; z: number };
   // Base control setups
   maxVelLimit?: number;
   turnVelMultiplier?: number;
