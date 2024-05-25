@@ -4,7 +4,7 @@ import React from "react";
 export { EcctrlAnimation } from "./EcctrlAnimation";
 export { useFollowCam } from "./hooks/useFollowCam";
 export { useGame } from "./stores/useGame";
-export { EcctrlJoystick } from "../src/EcctrlJoystick";
+export { EcctrlJoystick } from "./EcctrlJoystick";
 export { useJoystickControls } from "./stores/useJoystickControls";
 declare const _default: React.ForwardRefExoticComponent<EcctrlProps & React.RefAttributes<RapierRigidBody>>;
 export default _default;
@@ -15,7 +15,6 @@ export interface EcctrlProps extends RigidBodyProps {
     capsuleRadius?: number;
     floatHeight?: number;
     characterInitDir?: number;
-    followLight?: boolean;
     disableFollowCam?: boolean;
     disableFollowCamPos?: {
         x: number;
@@ -43,11 +42,6 @@ export interface EcctrlProps extends RigidBodyProps {
     camZoomSpeed?: number;
     camCollision?: boolean;
     camCollisionOffset?: number;
-    followLightPos?: {
-        x: number;
-        y: number;
-        z: number;
-    };
     maxVelLimit?: number;
     turnVelMultiplier?: number;
     turnSpeed?: number;

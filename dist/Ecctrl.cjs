@@ -189,7 +189,6 @@ const useFollowCam = function(props) {
     scene.children.forEach((child) => customTraverse(child));
     disableFollowCam ? followCam.remove(camera) : followCam.add(camera);
     pivot.add(followCam);
-    scene.add(pivot);
     gl.domElement.addEventListener("mousedown", () => {
       isMouseDown = true;
     });
@@ -947,7 +946,7 @@ const EcctrlJoystick = React.forwardRef(
         /* @__PURE__ */ React.createElement(JoystickComponents, { ...props }),
         props.children
       )
-    ), props.buttonNumber !== 0 && /* @__PURE__ */ React.createElement(
+    ), /* @__PURE__ */ React.createElement(
       "div",
       {
         id: "ecctrl-button",
@@ -1000,7 +999,6 @@ const Ecctrl = ({
   floatHeight = 0.3,
   characterInitDir = 0,
   // in rad
-  followLight = false,
   disableFollowCam = false,
   disableFollowCamPos = { x: 0, y: 0, z: -5 },
   disableFollowCamTarget = { x: 0, y: 0, z: 0 },
@@ -1015,8 +1013,6 @@ const Ecctrl = ({
   camZoomSpeed = 1,
   camCollision = true,
   camCollisionOffset = 0.7,
-  // Follow light setups
-  followLightPos = { x: 20, y: 30, z: 10 },
   // Base control setups
   maxVelLimit = 2.5,
   turnVelMultiplier = 0.2,
@@ -1094,14 +1090,13 @@ const Ecctrl = ({
     action3: 1,
     action4: 0
   };
-  let isModePointToMove = false;
   const setCameraBased = useGame((state) => state.setCameraBased);
   const getCameraBased = useGame((state) => state.getCameraBased);
   if (mode) {
-    if (mode === "PointToMove")
-      isModePointToMove = true;
     if (mode === "CameraBasedMovement")
       setCameraBased(true);
+  } else if (getCameraBased().isCameraBased) {
+    setCameraBased(false);
   }
   const modelFacingVec = React.useMemo(() => new THREE__namespace.Vector3(), []);
   const bodyFacingVec = React.useMemo(() => new THREE__namespace.Vector3(), []);
@@ -1119,19 +1114,15 @@ const Ecctrl = ({
     []
   );
   const vectorY = React.useMemo(() => new THREE__namespace.Vector3(0, 1, 0), []);
-  const vectorZ = React.useMemo(() => new THREE__namespace.Vector3(0, 0, 1), []);
-  const crossVecOnX = React.useMemo(() => new THREE__namespace.Vector3(), []);
-  const crossVecOnY = React.useMemo(() => new THREE__namespace.Vector3(), []);
-  const crossVecOnZ = React.useMemo(() => new THREE__namespace.Vector3(), []);
   const bodyContactForce = React.useMemo(
     () => new THREE__namespace.Vector3(),
     []
   );
-  const slopeRayOriginUpdatePosition = React.useMemo(
+  React.useMemo(
     () => new THREE__namespace.Vector3(),
     []
   );
-  const camBasedMoveCrossVecOnY = React.useMemo(
+  React.useMemo(
     () => new THREE__namespace.Vector3(),
     []
   );
@@ -1511,7 +1502,6 @@ const Ecctrl = ({
     []
   );
   const velocityDiff = React.useMemo(() => new THREE__namespace.Vector3(), []);
-  let dirLight = null;
   const cameraSetups = {
     disableFollowCam,
     disableFollowCamPos,
@@ -1563,18 +1553,6 @@ const Ecctrl = ({
   const slopeRayorigin = React.useMemo(() => new THREE__namespace.Vector3(), []);
   const slopeRayCast = new rapier$1.Ray(slopeRayorigin, slopeRayDir);
   let slopeRayHit = null;
-  let isBodyHitWall = false;
-  let isPointMoving = false;
-  const crossVector = React.useMemo(() => new THREE__namespace.Vector3(), []);
-  const pointToPoint = React.useMemo(() => new THREE__namespace.Vector3(), []);
-  const getMoveToPoint = useGame((state) => state.getMoveToPoint);
-  const bodySensorRef = React.useRef();
-  const handleOnIntersectionEnter = () => {
-    isBodyHitWall = true;
-  };
-  const handleOnIntersectionExit = () => {
-    isBodyHitWall = false;
-  };
   let characterRotated = true;
   const moveCharacter = (_, run, slopeAngle2, movingObjectVelocity2) => {
     if (actualSlopeAngle < slopeMaxAngle && Math.abs(slopeAngle2) > 0.2 && Math.abs(slopeAngle2) < slopeMaxAngle) {
@@ -1641,20 +1619,12 @@ const Ecctrl = ({
     if (getCameraBased().isCameraBased) {
       modelEuler.y = pivot.rotation.y;
       pivot.getWorldDirection(modelFacingVec);
-      slopeRayOriginUpdatePosition.set(movingDirection.x, 0, movingDirection.z);
-      camBasedMoveCrossVecOnY.copy(slopeRayOriginUpdatePosition).cross(modelFacingVec);
-      slopeRayOriginRef.current.position.x = slopeRayOriginOffest * Math.sin(
-        slopeRayOriginUpdatePosition.angleTo(modelFacingVec) * (camBasedMoveCrossVecOnY.y < 0 ? 1 : -1)
-      );
-      slopeRayOriginRef.current.position.z = slopeRayOriginOffest * Math.cos(
-        slopeRayOriginUpdatePosition.angleTo(modelFacingVec) * (camBasedMoveCrossVecOnY.y < 0 ? 1 : -1)
-      );
     } else {
       characterModelIndicator.getWorldDirection(modelFacingVec);
     }
-    crossVecOnX.copy(vectorY).cross(bodyBalanceVecOnX);
-    crossVecOnY.copy(modelFacingVec).cross(bodyFacingVecOnY);
-    crossVecOnZ.copy(vectorY).cross(bodyBalanceVecOnZ);
+    const crossVecOnX = vectorY.clone().cross(bodyBalanceVecOnX);
+    const crossVecOnY = modelFacingVec.clone().cross(bodyFacingVecOnY);
+    const crossVecOnZ = vectorY.clone().cross(bodyBalanceVecOnZ);
     dragAngForce.set(
       (crossVecOnX.x < 0 ? 1 : -1) * autoBalanceSpringK * bodyBalanceVecOnX.angleTo(vectorY) - characterRef.current.angvel().x * autoBalanceDampingC,
       (crossVecOnY.y < 0 ? 1 : -1) * autoBalanceSpringOnY * modelFacingVec.angleTo(bodyFacingVecOnY) - characterRef.current.angvel().y * autoBalanceDampingOnY,
@@ -1673,35 +1643,6 @@ const Ecctrl = ({
       }
     }
   };
-  const pointToMove = (delta, slopeAngle2, movingObjectVelocity2) => {
-    const moveToPoint = getMoveToPoint().moveToPoint;
-    if (moveToPoint) {
-      pointToPoint.set(
-        moveToPoint.x - currentPos.x,
-        0,
-        moveToPoint.z - currentPos.z
-      );
-      crossVector.crossVectors(pointToPoint, vectorZ);
-      modelEuler.y = (crossVector.y > 0 ? -1 : 1) * pointToPoint.angleTo(vectorZ);
-      if (characterRef.current) {
-        if (pointToPoint.length() > 0.3 && !isBodyHitWall) {
-          moveCharacter(delta, false, slopeAngle2, movingObjectVelocity2);
-          isPointMoving = true;
-        } else {
-          isPointMoving = false;
-        }
-      }
-    }
-  };
-  React.useEffect(() => {
-    if (followLight) {
-      dirLight = characterModelRef.current.parent.parent.children.find(
-        (item) => {
-          return item.name === "followLight";
-        }
-      );
-    }
-  });
   if (isInsideKeyboardControls) {
     React.useEffect(() => {
       const unSubscribeAction1 = subscribeKeys(
@@ -1815,18 +1756,11 @@ const Ecctrl = ({
       delta %= 1;
     if (characterRef.current) {
       currentPos.copy(characterRef.current.translation());
-      currentVel.copy(characterRef.current.linvel());
       characterRef.current.userData.rotation = (_a = characterModelRef.current) == null ? void 0 : _a.rotation;
       characterRef.current.userData.canJump = canJump;
       characterRef.current.userData.slopeAngle = slopeAngle;
       characterRef.current.userData.characterRotated = characterRotated;
       characterRef.current.userData.isOnMovingObject = isOnMovingObject;
-    }
-    if (followLight && dirLight) {
-      dirLight.position.x = currentPos.x + followLightPos.x;
-      dirLight.position.y = currentPos.y + followLightPos.y;
-      dirLight.position.z = currentPos.z + followLightPos.z;
-      dirLight.target = characterModelRef.current;
     }
     if (controllerIndex !== null) {
       const gamepad = navigator.getGamepads()[controllerIndex];
@@ -1853,6 +1787,8 @@ const Ecctrl = ({
     );
     if (forward || backward || leftward || rightward || gamepadKeys.forward || gamepadKeys.backward || gamepadKeys.leftward || gamepadKeys.rightward)
       moveCharacter(delta, run, slopeAngle, movingObjectVelocity);
+    if (characterRef.current)
+      currentVel.copy(characterRef.current.linvel());
     if ((jump || button1Pressed) && canJump) {
       jumpVelocityVec.set(
         currentVel.x,
@@ -1937,7 +1873,7 @@ const Ecctrl = ({
           if (velocityDiff.length() > 30)
             movingObjectVelocity.multiplyScalar(1 / velocityDiff.length());
           if (rayHitObjectBodyType === 0) {
-            if (!forward && !backward && !leftward && !rightward && canJump && joystickDis === 0 && !isPointMoving && !gamepadKeys.forward && !gamepadKeys.backward && !gamepadKeys.leftward && !gamepadKeys.rightward) {
+            if (!forward && !backward && !leftward && !rightward && canJump && joystickDis === 0 && !gamepadKeys.forward && !gamepadKeys.backward && !gamepadKeys.leftward && !gamepadKeys.rightward) {
               movingObjectDragForce.copy(bodyContactForce).multiplyScalar(delta).multiplyScalar(Math.min(1, 1 / massRatio)).negate();
               bodyContactForce.set(0, 0, 0);
             } else {
@@ -2015,7 +1951,7 @@ const Ecctrl = ({
         (_d = rayHit.collider.parent()) == null ? void 0 : _d.applyImpulseAtPoint(characterMassForce, standingForcePoint, true);
       }
     }
-    if (!forward && !backward && !leftward && !rightward && canJump && joystickDis === 0 && !isPointMoving && !gamepadKeys.forward && !gamepadKeys.backward && !gamepadKeys.leftward && !gamepadKeys.rightward) {
+    if (!forward && !backward && !leftward && !rightward && canJump && joystickDis === 0 && !gamepadKeys.forward && !gamepadKeys.backward && !gamepadKeys.leftward && !gamepadKeys.rightward) {
       if (!isOnMovingObject) {
         dragForce.set(
           -currentVel.x * dragDampingC,
@@ -2049,13 +1985,12 @@ const Ecctrl = ({
     if (autoBalance && characterRef.current)
       autoBalanceCharacter();
     camCollision && cameraCollisionDetect(delta);
-    isModePointToMove && pointToMove(delta, slopeAngle, movingObjectVelocity);
     if (animated) {
-      if (!forward && !backward && !leftward && !rightward && !jump && !button1Pressed && joystickDis === 0 && !isPointMoving && !gamepadKeys.forward && !gamepadKeys.backward && !gamepadKeys.leftward && !gamepadKeys.rightward && canJump) {
+      if (!forward && !backward && !leftward && !rightward && !jump && !button1Pressed && joystickDis === 0 && !gamepadKeys.forward && !gamepadKeys.backward && !gamepadKeys.leftward && !gamepadKeys.rightward && canJump) {
         idleAnimation();
       } else if ((jump || button1Pressed) && canJump) {
         jumpAnimation();
-      } else if (canJump && (forward || backward || leftward || rightward || joystickDis > 0 || isPointMoving || gamepadKeys.forward || gamepadKeys.backward || gamepadKeys.leftward || gamepadKeys.rightward)) {
+      } else if (canJump && (forward || backward || leftward || rightward || joystickDis > 0 || gamepadKeys.forward || gamepadKeys.backward || gamepadKeys.leftward || gamepadKeys.rightward)) {
         run || runState ? runAnimation() : walkAnimation();
       } else if (!canJump) {
         jumpIdleAnimation();
@@ -2070,7 +2005,7 @@ const Ecctrl = ({
     {
       colliders: false,
       ref: characterRef,
-      position: props.position || [0, 5, 0],
+      position: props.position || [0, 0, 0],
       friction: props.friction || -0.5,
       onContactForce: (e) => bodyContactForce.set(e.totalForce.x, e.totalForce.y, e.totalForce.z),
       onCollisionExit: () => bodyContactForce.set(0, 0, 0),
@@ -2082,17 +2017,6 @@ const Ecctrl = ({
       {
         name: "character-capsule-collider",
         args: [capsuleHalfHeight, capsuleRadius]
-      }
-    ),
-    isModePointToMove && /* @__PURE__ */ React.createElement(
-      rapier.CylinderCollider,
-      {
-        ref: bodySensorRef,
-        sensor: true,
-        args: [capsuleHalfHeight / 2, capsuleRadius],
-        position: [0, 0, capsuleRadius / 2],
-        onIntersectionEnter: handleOnIntersectionEnter,
-        onIntersectionExit: handleOnIntersectionExit
       }
     ),
     /* @__PURE__ */ React.createElement("group", { ref: characterModelRef, userData: { camExcludeCollision: true } }, /* @__PURE__ */ React.createElement(
