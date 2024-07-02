@@ -11,6 +11,7 @@ export default _default;
 export interface EcctrlProps extends RigidBodyProps {
     children?: ReactNode;
     debug?: boolean;
+    runByDefault?: boolean;
     capsuleHalfHeight?: number;
     capsuleRadius?: number;
     floatHeight?: number;
