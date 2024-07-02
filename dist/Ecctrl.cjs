@@ -993,6 +993,7 @@ const getMovingDirection = (forward, backward, leftward, rightward, pivot) => {
 };
 const Ecctrl = ({
   children,
+  runByDefault = false,
   debug = false,
   capsuleHalfHeight = 0.35,
   capsuleRadius = 0.3,
@@ -1781,7 +1782,8 @@ const Ecctrl = ({
       modelEuler.y = pivot.rotation.y + (joystickAng - Math.PI / 2);
       moveCharacter(delta, runState, slopeAngle, movingObjectVelocity);
     }
-    const { forward, backward, leftward, rightward, jump, run } = isInsideKeyboardControls ? getKeys() : presetKeys;
+    const { forward, backward, leftward, rightward, jump, run: runKey } = isInsideKeyboardControls ? getKeys() : presetKeys;
+    const run = runByDefault ? runKey : !runKey;
     modelEuler.y = ((movingDirection2) => movingDirection2 === null ? modelEuler.y : movingDirection2)(
       getMovingDirection(forward, backward, leftward, rightward, pivot)
     );

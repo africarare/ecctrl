@@ -10,6 +10,7 @@ declare const _default: React.ForwardRefExoticComponent<EcctrlProps & React.RefA
 export default _default;
 export interface EcctrlProps extends RigidBodyProps {
     children?: ReactNode;
+    runByDefault?: boolean;
     debug?: boolean;
     capsuleHalfHeight?: number;
     capsuleRadius?: number;
