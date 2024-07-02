@@ -259,7 +259,7 @@ export const useFollowCam = function (props: UseFollowCamProps) {
     gl.domElement.addEventListener("mousedown", () => {
       isMouseDown = true;
     });
-    gl.domElement.addEventListener("mouseup", () => {
+    document.addEventListener("mouseup", () => {
       isMouseDown = false;
     });
     gl.domElement.addEventListener("mousemove", onDocumentMouseMove);
@@ -274,7 +274,7 @@ export const useFollowCam = function (props: UseFollowCamProps) {
       gl.domElement.removeEventListener("mousedown", () => {
         isMouseDown = true;
       });
-      gl.domElement.removeEventListener("mouseup", () => {
+      document.removeEventListener("mouseup", () => {
         isMouseDown = false;
       });
       gl.domElement.removeEventListener("mousemove", onDocumentMouseMove);
