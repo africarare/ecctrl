@@ -58,7 +58,6 @@ const getMovingDirection = (
 const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
   {
     children,
-    runByDefault = false,
     debug = false,
     capsuleHalfHeight = 0.35,
     capsuleRadius = 0.3,
@@ -1115,9 +1114,8 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
     /**
      * Getting all the useful keys from useKeyboardControls
      */
-    const { forward, backward, leftward, rightward, jump, run: runKey } =
+    const { forward, backward, leftward, rightward, jump, run } =
       isInsideKeyboardControls ? getKeys() : presetKeys;
-    const run = runByDefault ? runKey : !runKey;
 
     // Getting moving directions (IIFE)
     modelEuler.y = ((movingDirection) =>
@@ -1568,7 +1566,6 @@ export default forwardRef(Ecctrl);
 
 export interface EcctrlProps extends RigidBodyProps {
   children?: ReactNode;
-  runByDefault?: boolean;
   debug?: boolean;
   capsuleHalfHeight?: number;
   capsuleRadius?: number;
