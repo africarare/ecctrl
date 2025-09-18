@@ -57,6 +57,7 @@ export interface EcctrlProps extends RigidBodyProps {
     rejectVelMult?: number;
     moveImpulsePointY?: number;
     camFollowMult?: number;
+    camLerpMult?: number;
     fallingGravityScale?: number;
     fallingMaxVel?: number;
     wakeUpDelay?: number;

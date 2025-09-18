@@ -47,7 +47,7 @@ const useFollowCam = function(props) {
       pivot.rotation.y -= e.movementX * 2e-3 * camMoveSpeed;
       const vy = followCam.rotation.x + e.movementY * 2e-3 * camMoveSpeed;
       cameraDistance = followCam.position.length();
-      if (vy >= -0.5 && vy <= 1.5) {
+      if (vy >= -1.3 && vy <= 1.5) {
         followCam.rotation.x = vy;
         followCam.position.y = -cameraDistance * Math.sin(-vy);
         followCam.position.z = -cameraDistance * Math.cos(-vy);
@@ -168,7 +168,6 @@ const useFollowCam = function(props) {
   }, [disableFollowCam]);
   useEffect(() => {
     scene.children.forEach((child) => customTraverse(child));
-    disableFollowCam ? followCam.remove(camera) : followCam.add(camera);
     pivot.add(followCam);
     gl.domElement.addEventListener("mousedown", () => {
       isMouseDown = true;
@@ -1010,6 +1009,7 @@ const Ecctrl = ({
   rejectVelMult = 4,
   moveImpulsePointY = 0.5,
   camFollowMult = 11,
+  camLerpMult = 25,
   fallingGravityScale = 2.5,
   fallingMaxVel = -20,
   wakeUpDelay = 200,
@@ -1496,8 +1496,9 @@ const Ecctrl = ({
     camZoomSpeed,
     camCollisionOffset
   };
-  const { pivot, cameraCollisionDetect, joystickCamMove } = useFollowCam(cameraSetups);
+  const { pivot, followCam, cameraCollisionDetect, joystickCamMove } = useFollowCam(cameraSetups);
   const pivotPosition = useMemo(() => new THREE.Vector3(), []);
+  const followCamPosition = useMemo(() => new THREE.Vector3(), []);
   const modelEuler = useMemo(() => new THREE.Euler(), []);
   const modelQuat = useMemo(() => new THREE.Quaternion(), []);
   const moveImpulse = useMemo(() => new THREE.Vector3(), []);
@@ -1805,7 +1806,11 @@ const Ecctrl = ({
       currentPos.z + camTargetPos.z
     );
     pivot.position.lerp(pivotPosition, 1 - Math.exp(-camFollowMult * delta));
-    !disableFollowCam && state.camera.lookAt(pivot.position);
+    if (!disableFollowCam) {
+      followCam.getWorldPosition(followCamPosition);
+      state.camera.position.lerp(followCamPosition, 1 - Math.exp(-camLerpMult * delta));
+      state.camera.lookAt(pivot.position);
+    }
     rayOrigin.addVectors(currentPos, rayOriginOffest);
     rayHit = world.castRay(
       rayCast,

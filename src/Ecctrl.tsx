@@ -92,6 +92,7 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
     rejectVelMult = 4,
     moveImpulsePointY = 0.5,
     camFollowMult = 11,
+    camLerpMult = 25,
     fallingGravityScale = 2.5,
     fallingMaxVel = -20,
     wakeUpDelay = 200,
@@ -645,9 +646,10 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
   /**
    * Load camera pivot and character move preset
    */
-  const { pivot, cameraCollisionDetect, joystickCamMove } =
+  const { pivot, followCam, cameraCollisionDetect, joystickCamMove } =
     useFollowCam(cameraSetups);
   const pivotPosition: THREE.Vector3 = useMemo(() => new THREE.Vector3(), []);
+  const followCamPosition: THREE.Vector3 = useMemo(() => new THREE.Vector3(), []);
   const modelEuler: THREE.Euler = useMemo(() => new THREE.Euler(), []);
   const modelQuat: THREE.Quaternion = useMemo(() => new THREE.Quaternion(), []);
   const moveImpulse: THREE.Vector3 = useMemo(() => new THREE.Vector3(), []);
@@ -1192,7 +1194,12 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
       currentPos.z + camTargetPos.z
     );
     pivot.position.lerp(pivotPosition, 1 - Math.exp(-camFollowMult * delta));
-    !disableFollowCam && state.camera.lookAt(pivot.position);
+
+    if (!disableFollowCam) {
+      followCam.getWorldPosition(followCamPosition);
+      state.camera.position.lerp(followCamPosition, 1 - Math.exp(-camLerpMult * delta));
+      state.camera.lookAt(pivot.position);
+    }
 
     /**
      * Ray casting detect if on ground
@@ -1602,6 +1609,7 @@ export interface EcctrlProps extends RigidBodyProps {
   rejectVelMult?: number;
   moveImpulsePointY?: number;
   camFollowMult?: number;
+  camLerpMult?: number;
   fallingGravityScale?: number;
   fallingMaxVel?: number;
   wakeUpDelay?: number;

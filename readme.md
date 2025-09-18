@@ -146,7 +146,8 @@ EcctrlProps: {
   accDeltaTime: 8, // Acceleration delta time
   rejectVelMult: 4, // Reject velocity multiplier
   moveImpulsePointY: 0.5, // Move impulse point Y offset
-  camFollowMult: 11, // Camera follow speed multiplier
+  camFollowMult: 11, // Camera follow target speed multiplier
+  camLerpMult: 25, // Camera lerp to position speed multiplier
   fallingGravityScale: 2.5, // Character is falling, apply higher gravity
   fallingMaxVel: -20, // Limit character max falling velocity
   wakeUpDelay: 200, // Wake up character delay time after window visibility change to visible (in ms)
