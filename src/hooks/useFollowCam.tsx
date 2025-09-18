@@ -107,7 +107,7 @@ export const useFollowCam = function (props: UseFollowCamProps) {
 
       cameraDistance = followCam.position.length();
 
-      if (vy >= -0.5 && vy <= 1.5) {
+      if (vy >= -1.3 && vy <= 1.5) {
         followCam.rotation.x = vy;
         followCam.position.y = -cameraDistance * Math.sin(-vy);
         followCam.position.z = -cameraDistance * Math.cos(-vy);
@@ -148,7 +148,7 @@ export const useFollowCam = function (props: UseFollowCamProps) {
 
     cameraDistance = followCam.position.length();
 
-    if (vy >= -0.5 && vy <= 1.5) {
+    if (vy >= -1.3 && vy <= 1.5) {
       followCam.rotation.x = vy;
       followCam.position.y = -cameraDistance * Math.sin(-vy);
       followCam.position.z = -cameraDistance * Math.cos(vy);
