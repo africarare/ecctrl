@@ -120,7 +120,7 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
     // Animation temporary setups
     animated = false,
     // Mode setups
-    mode = null,
+    mode = undefined,
     // Controller setups
     controllerKeys = {
       forward: 12,
@@ -1115,8 +1115,14 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
     /**
      * Getting all the useful keys from useKeyboardControls
      */
-    const { forward, backward, leftward, rightward, jump, run: runKey } =
-      isInsideKeyboardControls ? getKeys() : presetKeys;
+    const {
+      forward,
+      backward,
+      leftward,
+      rightward,
+      jump,
+      run: runKey,
+    } = isInsideKeyboardControls ? getKeys() : presetKeys;
     const run = runByDefault ? !runKey : runKey;
 
     // Getting moving directions (IIFE)
@@ -1141,6 +1147,21 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
     // Character current velocity
     if (characterRef.current)
       currentVel.copy(characterRef.current.linvel() as THREE.Vector3);
+
+    // Determine movement input & idle stabilization state
+    const movingInputActive =
+      forward ||
+      backward ||
+      leftward ||
+      rightward ||
+      joystickDis > 0 ||
+      gamepadKeys.forward ||
+      gamepadKeys.backward ||
+      gamepadKeys.leftward ||
+      gamepadKeys.rightward;
+    const horizontalSpeed = Math.hypot(currentVel.x, currentVel.z);
+    const idleStabilize =
+      canJump && !movingInputActive && horizontalSpeed < 0.2;
 
     // Jump impulse
     if ((jump || button1Pressed) && canJump) {
@@ -1226,8 +1247,12 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
     // );
 
     if (rayHit && rayHit.toi < floatingDis + rayHitForgiveness) {
-      if (slopeRayHit && actualSlopeAngle < slopeMaxAngle) {
+      // Consider grounded when within tolerance; ignore slope ray absence
+      // Only block grounding if slope is known and exceeds limit
+      if (actualSlopeAngle == null || actualSlopeAngle < slopeMaxAngle) {
         canJump = true;
+      } else {
+        canJump = false;
       }
     } else {
       canJump = false;
@@ -1388,6 +1413,12 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
     /**
      * Apply floating force
      */
+    // Cooldown to avoid spring/down-bias immediately after stepping up
+    const STEP_COOLDOWN = 0.12; // seconds
+    const lastStepLiftAtRef = (useFrame as any)._lastStepLiftAtRef || {
+      current: -Infinity,
+    };
+
     if (rayHit != null) {
       if (canJump && rayHit.collider.parent()) {
         floatingForce =
@@ -1403,6 +1434,18 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
         rayHit.collider
           .parent()
           ?.applyImpulseAtPoint(characterMassForce, standingForcePoint, true);
+      }
+    }
+    // When grounded and not initiating a jump, apply a tiny downward bias to keep feet in contact
+    if (
+      idleStabilize &&
+      !(jump || button1Pressed) &&
+      characterRef.current &&
+      state.clock.elapsedTime - lastStepLiftAtRef.current > STEP_COOLDOWN
+    ) {
+      const lv = characterRef.current.linvel() as THREE.Vector3;
+      if (lv && lv.y > 0) {
+        characterRef.current.setLinvel({ x: lv.x, y: -0.02, z: lv.z }, true);
       }
     }
 
@@ -1543,7 +1586,53 @@ const Ecctrl: ForwardRefRenderFunction<RapierRigidBody, EcctrlProps> = (
         name="character-capsule-collider"
         args={[capsuleHalfHeight, capsuleRadius]}
       />
-      <group ref={characterModelRef} userData={{ camExcludeCollision: true }}>
+      {/* <CapsuleCollider
+        name="character-capsule-collider"
+        args={[capsuleHalfHeight, capsuleRadius]}
+        // Material defaults for better ground contact
+        friction={0.9}
+        restitution={0}
+        frictionCombineRule={
+          CoefficientCombineRule
+            ? (CoefficientCombineRule as any).Min
+            : undefined
+        }
+        restitutionCombineRule={
+          CoefficientCombineRule
+            ? (CoefficientCombineRule as any).Min
+            : undefined
+        }
+      /> */}
+      {/* {isMoving ? (
+        <CapsuleCollider
+          name="character-capsule-collider"
+          args={[capsuleHalfHeight, capsuleRadius]}
+        />
+      ) : (
+        <CapsuleCollider
+          name="character-capsule-collider"
+          args={[capsuleHalfHeight, capsuleRadius]}
+          // Material defaults for better ground contact
+          friction={0.9}
+          restitution={0}
+          frictionCombineRule={
+            CoefficientCombineRule
+              ? (CoefficientCombineRule as any).Min
+              : undefined
+          }
+          restitutionCombineRule={
+            CoefficientCombineRule
+              ? (CoefficientCombineRule as any).Min
+              : undefined
+          }
+        />
+      )} */}
+
+      <group
+        ref={characterModelRef}
+        // position={[0, modelYOffset, 0]}
+        userData={{ camExcludeCollision: true }}
+      >
         {/* This mesh is used for positioning the slope ray origin */}
         <mesh
           position={[
@@ -1636,6 +1725,7 @@ export interface EcctrlProps extends RigidBodyProps {
   animated?: boolean;
   // Mode setups
   mode?: string;
+  // Visual offset (lifts model without changing physics collider)
   // Controller setups
   controllerKeys?: {
     forward?: number;
