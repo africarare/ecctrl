@@ -1838,7 +1838,7 @@ const Ecctrl = ({
       // this exclude any collider with userData: excludeEcctrlRay
       (collider) => collider.parent().userData && !collider.parent().userData.excludeEcctrlRay
     );
-    if (rayHit && rayHit.toi < floatingDis + rayHitForgiveness) {
+    if (rayHit && rayHit.timeOfImpact < floatingDis + rayHitForgiveness) {
       if (slopeRayHit && actualSlopeAngle < slopeMaxAngle) {
         canJump = true;
       }
@@ -1849,7 +1849,7 @@ const Ecctrl = ({
       if (rayHit.collider.parent()) {
         standingForcePoint.set(
           rayOrigin.x,
-          rayOrigin.y - rayHit.toi,
+          rayOrigin.y - rayHit.timeOfImpact,
           rayOrigin.z
         );
         const rayHitObjectBodyType = rayHit.collider.parent().bodyType();
@@ -1929,11 +1929,11 @@ const Ecctrl = ({
         actualSlopeAngle = actualSlopeNormalVec == null ? void 0 : actualSlopeNormalVec.angleTo(floorNormal);
       }
     }
-    if (slopeRayHit && rayHit && slopeRayHit.toi < floatingDis + 0.5) {
+    if (slopeRayHit && rayHit && slopeRayHit.timeOfImpact < floatingDis + 0.5) {
       if (canJump) {
         slopeAngle = Number(
           Math.atan(
-            (rayHit.toi - slopeRayHit.toi) / slopeRayOriginOffest
+            (rayHit.timeOfImpact - slopeRayHit.timeOfImpact) / slopeRayOriginOffest
           ).toFixed(2)
         );
       } else {
@@ -1944,7 +1944,7 @@ const Ecctrl = ({
     }
     if (rayHit != null) {
       if (canJump && rayHit.collider.parent()) {
-        floatingForce = springK * (floatingDis - rayHit.toi) - characterRef.current.linvel().y * dampingC;
+        floatingForce = springK * (floatingDis - rayHit.timeOfImpact) - characterRef.current.linvel().y * dampingC;
         characterRef.current.applyImpulse(
           springDirVec.set(0, floatingForce, 0),
           false
