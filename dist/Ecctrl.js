@@ -1039,7 +1039,7 @@ const Ecctrl = ({
   // Animation temporary setups
   animated: animated2 = false,
   // Mode setups
-  mode = null,
+  mode = void 0,
   // Controller setups
   controllerKeys = {
     forward: 12,
@@ -1763,7 +1763,14 @@ const Ecctrl = ({
       modelEuler.y = pivot.rotation.y + (joystickAng - Math.PI / 2);
       moveCharacter(delta, runState, slopeAngle, movingObjectVelocity);
     }
-    const { forward, backward, leftward, rightward, jump, run: runKey } = isInsideKeyboardControls ? getKeys() : presetKeys;
+    const {
+      forward,
+      backward,
+      leftward,
+      rightward,
+      jump,
+      run: runKey
+    } = isInsideKeyboardControls ? getKeys() : presetKeys;
     const run = runByDefault ? !runKey : runKey;
     modelEuler.y = ((movingDirection2) => movingDirection2 === null ? modelEuler.y : movingDirection2)(
       getMovingDirection(forward, backward, leftward, rightward, pivot)
@@ -1772,6 +1779,9 @@ const Ecctrl = ({
       moveCharacter(delta, run, slopeAngle, movingObjectVelocity);
     if (characterRef.current)
       currentVel.copy(characterRef.current.linvel());
+    const movingInputActive = forward || backward || leftward || rightward || joystickDis > 0 || gamepadKeys.forward || gamepadKeys.backward || gamepadKeys.leftward || gamepadKeys.rightward;
+    const horizontalSpeed = Math.hypot(currentVel.x, currentVel.z);
+    const idleStabilize = canJump && !movingInputActive && horizontalSpeed < 0.2;
     if ((jump || button1Pressed) && canJump) {
       jumpVelocityVec.set(
         currentVel.x,
@@ -1820,8 +1830,10 @@ const Ecctrl = ({
       (collider) => collider.parent().userData && !collider.parent().userData.excludeEcctrlRay
     );
     if (rayHit && rayHit.toi < floatingDis + rayHitForgiveness) {
-      if (slopeRayHit && actualSlopeAngle < slopeMaxAngle) {
+      if (actualSlopeAngle == null || actualSlopeAngle < slopeMaxAngle) {
         canJump = true;
+      } else {
+        canJump = false;
       }
     } else {
       canJump = false;
@@ -1923,6 +1935,10 @@ const Ecctrl = ({
     } else {
       slopeAngle = null;
     }
+    const STEP_COOLDOWN = 0.12;
+    const lastStepLiftAtRef = useFrame._lastStepLiftAtRef || {
+      current: -Infinity
+    };
     if (rayHit != null) {
       if (canJump && rayHit.collider.parent()) {
         floatingForce = springK * (floatingDis - rayHit.toi) - characterRef.current.linvel().y * dampingC;
@@ -1932,6 +1948,12 @@ const Ecctrl = ({
         );
         characterMassForce.set(0, floatingForce > 0 ? -floatingForce : 0, 0);
         (_d = rayHit.collider.parent()) == null ? void 0 : _d.applyImpulseAtPoint(characterMassForce, standingForcePoint, true);
+      }
+    }
+    if (idleStabilize && !(jump || button1Pressed) && characterRef.current && state.clock.elapsedTime - lastStepLiftAtRef.current > STEP_COOLDOWN) {
+      const lv = characterRef.current.linvel();
+      if (lv && lv.y > 0) {
+        characterRef.current.setLinvel({ x: lv.x, y: -0.02, z: lv.z }, true);
       }
     }
     if (!forward && !backward && !leftward && !rightward && canJump && joystickDis === 0 && !gamepadKeys.forward && !gamepadKeys.backward && !gamepadKeys.leftward && !gamepadKeys.rightward) {
@@ -2002,20 +2024,28 @@ const Ecctrl = ({
         args: [capsuleHalfHeight, capsuleRadius]
       }
     ),
-    /* @__PURE__ */ React.createElement("group", { ref: characterModelRef, userData: { camExcludeCollision: true } }, /* @__PURE__ */ React.createElement(
-      "mesh",
+    /* @__PURE__ */ React.createElement(
+      "group",
       {
-        position: [
-          rayOriginOffest.x,
-          rayOriginOffest.y,
-          rayOriginOffest.z + slopeRayOriginOffest
-        ],
-        ref: slopeRayOriginRef,
-        visible: showSlopeRayOrigin,
+        ref: characterModelRef,
         userData: { camExcludeCollision: true }
       },
-      /* @__PURE__ */ React.createElement("boxGeometry", { args: [0.15, 0.15, 0.15] })
-    ), children)
+      /* @__PURE__ */ React.createElement(
+        "mesh",
+        {
+          position: [
+            rayOriginOffest.x,
+            rayOriginOffest.y,
+            rayOriginOffest.z + slopeRayOriginOffest
+          ],
+          ref: slopeRayOriginRef,
+          visible: showSlopeRayOrigin,
+          userData: { camExcludeCollision: true }
+        },
+        /* @__PURE__ */ React.createElement("boxGeometry", { args: [0.15, 0.15, 0.15] })
+      ),
+      children
+    )
   );
 };
 const Ecctrl$1 = forwardRef(Ecctrl);
