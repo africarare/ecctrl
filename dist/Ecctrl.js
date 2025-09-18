@@ -80,7 +80,7 @@ const useFollowCam = function(props) {
       pivot.rotation.y -= touch1MovementX * 5e-3 * camMoveSpeed;
       const vy = followCam.rotation.x + touch1MovementY * 5e-3 * camMoveSpeed;
       cameraDistance = followCam.position.length();
-      if (vy >= -0.5 && vy <= 1.5) {
+      if (vy >= -1.3 && vy <= 1.5) {
         followCam.rotation.x = vy;
         followCam.position.y = -cameraDistance * Math.sin(-vy);
         followCam.position.z = -cameraDistance * Math.cos(-vy);
@@ -110,7 +110,7 @@ const useFollowCam = function(props) {
     pivot.rotation.y -= movementX * 5e-3 * camMoveSpeed * 3;
     const vy = followCam.rotation.x + movementY * 5e-3 * camMoveSpeed * 3;
     cameraDistance = followCam.position.length();
-    if (vy >= -0.5 && vy <= 1.5) {
+    if (vy >= -1.3 && vy <= 1.5) {
       followCam.rotation.x = vy;
       followCam.position.y = -cameraDistance * Math.sin(-vy);
       followCam.position.z = -cameraDistance * Math.cos(vy);
