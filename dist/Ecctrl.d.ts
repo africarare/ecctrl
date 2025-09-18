@@ -6,7 +6,7 @@ export { useFollowCam } from "./hooks/useFollowCam";
 export { useGame } from "./stores/useGame";
 export { EcctrlJoystick } from "./EcctrlJoystick";
 export { useJoystickControls } from "./stores/useJoystickControls";
-declare const _default: React.ForwardRefExoticComponent<Omit<EcctrlProps, "ref"> & React.RefAttributes<RapierRigidBody>>;
+declare const _default: React.ForwardRefExoticComponent<EcctrlProps & React.RefAttributes<RapierRigidBody>>;
 export default _default;
 export interface EcctrlProps extends RigidBodyProps {
     children?: ReactNode;
